@@ -1,0 +1,14 @@
+jenkins_parameters:
+  mortagage_git_url: 'git@github.com:gmsadmin-git/MortgageApplication.git'
+  banking_git_url: 'https://github.com/gmsadmin-git/Banking_Demo.git'
+  jenkins_server_url : "https://gms.genairesonance.com/"
+  jenkins_username : "admin"
+  jenkins_password : "Passw0rd"
+
+
+##https://github.com/gmsadmin-git/Banking_Demo.git
+
+ # git@github.com:gmsadmin-git/MortgageApplication.git
+
+
+#

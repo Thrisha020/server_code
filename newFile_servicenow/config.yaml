@@ -1,0 +1,23 @@
+
+
+servicenow:
+  instance_url: "https://dev208451.service-now.com/"
+  username: "admin"
+  password: "+Iv9UcY5-Srz"
+
+endpoints:
+  table: "/api/now/table/{table_name}"
+  incident: "/api/now/table/incident"
+  user: "/api/now/table/sys_user"
+  catalog_items: "/api/sn_sc/servicecatalog/items"
+  attachment: "/api/now/attachment/file"
+  change_request: "/api/now/table/change_request"
+  import_set: "/api/now/import/{table_name}"
+  inbound_events: "/api/global/em/jsonv2"
+  
+oauth:
+  client_id: "your_client_id"
+  client_secret: "your_client_secret"
+  username: "your_username"
+  password: "your_password"
+  
