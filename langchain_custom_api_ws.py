@@ -49,7 +49,8 @@ from dynamicEAbokeh_v2 import ea_main
 #from double_click import main
 from pathlib import Path
 from dynamic_table import *
-from curl_3 import *
+#from curl_3 import *
+from update_curl_3 import *
 #from checj import *
 from checkjv2 import jenkins_main
 from fastapi.responses import FileResponse, JSONResponse
@@ -990,6 +991,15 @@ import asyncio
 lock = asyncio.Lock()
 
 data_ready = asyncio.Event()
+
+from fastapi.responses import HTMLResponse
+@app.get("/chathtml_template", response_class=HTMLResponse)
+async def html_template(html_filename : str):
+    html_file = Path('/root/Desktop/Chatbot/html_paths') / html_filename
+    #html_file = f"/root/amflw_chatbot/chabot_v4/upload_files/csv_html_reports/{html_filename}"
+    if html_file.exists():
+        return HTMLResponse(content=html_file.read_text(), status_code=200)
+    return HTMLResponse(content="<h1> Sorry, We are not able to generate a report at the moment..</h1>", status_code=404)
 
 @app.get("/chatstest")
 async def stream_html_response(fileanme: str):
