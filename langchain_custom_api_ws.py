@@ -58,6 +58,7 @@ import openai
 from langchain.tools import Tool
 from openai import OpenAI
 import traceback
+from fastapi.staticfiles import StaticFiles
 # FastAPI app
 app = FastAPI()
 
@@ -236,15 +237,17 @@ def get_incident_ticket() -> dict:
     """
     try:
         # Get the incidents for a specific user ID
-        incidents = get_user_incidents_by_sys_id('6aa0113e0da112104f349799ccc97355')
+        
+        incidents = get_user_incidents_by_sys_id('800b174138d089c868d09de320f9833b')
         return {'incident_tickets': incidents}
     except Exception as e:
         return {"error": f"Failed to retrieve incident tickets: {str(e)}"}
 
 @tool
-def update_incident() -> dict:
+def update_incident1() -> dict:
     """
-    Update an incident ticket in ServiceNow with new information.
+    Tool for Updating an incident ticket in ServiceNow with new information.
+    Returns a dict having the action and scroll_down_key.
     """
     try:
         return {
@@ -255,13 +258,13 @@ def update_incident() -> dict:
         return {"error": f"Failed to update incident: {str(e)}"}
 
 @tool
-def upload_attachment() -> dict:
+def upload_attachment1() -> dict:
     """
     Upload an attachment to an incident ticket in ServiceNow.
     """
     try:
         # First get the incidents to select which one to attach to
-        incidents = get_user_incidents_by_sys_id('6aa0113e0da112104f349799ccc97355')
+        incidents = get_user_incidents_by_sys_id('800b174138d089c868d09de320f9833b')
         return {'action': 'log_file'}
     except Exception as e:
         return {"error": f"Failed to upload attachment: {str(e)}"}
@@ -434,7 +437,8 @@ def dependency_graph(user_query: str) -> dict:
             "action": "dependency_graph"
         }
     
-    
+app.mount("/chatagentws/table_image", StaticFiles(directory="table_variable"), name="table_image")
+
 @tool
 def variable_table(query: str):
     """Display affected variable data table from COBOL-style variable input"""
@@ -456,6 +460,9 @@ def variable_table(query: str):
             ],
         )
         variable = chat_completion.choices[0].message.content.strip()
+
+    app.mount("/chatagentws/table_image", StaticFiles(directory="table_variable"), name="table_image")
+
 
     variable_ids = get_variable_id(variable)
     affected_data = get_affected_data_items(variable_ids[0])
@@ -499,11 +506,11 @@ def get_incident_ticket_wrapper(query):
 
 def update_incident_wrapper(query):
     """Wrapper for update_incident function to handle the tool_input parameter"""
-    return update_incident(query)
+    return update_incident1(query)
 
 def upload_attachment_wrapper(query):
     """Wrapper for upload_attachment function to handle the tool_input parameter"""
-    return upload_attachment(query)
+    return upload_attachment1(query)
 
 
 # Create tools with our wrapper functions
@@ -515,8 +522,8 @@ langchain_tools = [
     Tool(name="dependency_graph", func=dependency_graph_wrapper, description="Show dependency graph."),
     Tool(name="variable_table", func=variable_table_wrapper, description="Show affected variables."),
     Tool(name="get_incident_ticket", func=get_incident_ticket_wrapper, description="Function for retrieving incident tickets from ServiceNow."),
-    Tool(name="update_incident", func=update_incident_wrapper, description="Function for updating an incident ticket in ServiceNow."),
-    Tool(name="upload_attachment", func=upload_attachment_wrapper, description="Function for uploading an attachment to an incident ticket.")
+    Tool(name="update_incident1", func=update_incident_wrapper, description="Function for updating an incident ticket in ServiceNow."),
+    Tool(name="upload_attachment1", func=upload_attachment_wrapper, description="Function for uploading an attachment to an ServiceNow.")
 ]
 
 # Initialize LLM
@@ -610,21 +617,24 @@ async def websocket_get_ticket_details(websocket: WebSocket, ticket_number: str)
 async def websocket_update_incident(websocket: WebSocket):
     await manager.connect(websocket)
     try:
-        while True:
-            data = await websocket.receive_json()
-            incident_number = data.get('incident_number')
-            update_fields = data.get('update_fields')
-            
-            updated_incident = update_incident(incident_number, update_fields)
-            ticket_details = get_incident(incident_number)  # Fetch ticket details after update
+        data = await websocket.receive_json()
+        incident_number = data.get('incident_number')
+        update_fields = data.get('update_fields')
 
+        try:
+            updated_incident = update_incident(incident_number, update_fields)
+            ticket_details = get_incident(incident_number)
+            
             await websocket.send_json({
                 "message": f"Incident {incident_number} has been successfully updated.",
                 "updated_incident": updated_incident,
                 "ticket_details": ticket_details
             })
+        except Exception as e:
+            await websocket.send_json({"error": f"Failed to update incident: {str(e)}"})
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
 
 class variable_id(BaseModel):
     variable_id: str
@@ -653,75 +663,97 @@ async def websocket_variable_id_table(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
-@app.websocket("/chatagentws/table_image/{image_name}")
-async def websocket_get_image(websocket: WebSocket, image_name: str):
-    await manager.connect(websocket)
-    try:
-        image_path = f"/root/Desktop/Chatbot/table_variable/{image_name}"
-        
-        if image_name.endswith(".svg"):
-            media_type = "image/svg+xml"
-        elif image_name.endswith(".png"):
-            media_type = "image/png"
-        elif image_name.endswith(".jpg") or image_name.endswith(".jpeg"):
-            media_type = "image/jpeg"
-        else:
-            await websocket.send_json({"error": "Unsupported file format"})
-            return
+@app.get("/chatagent/table_image/{image_name}")
+async def get_icoon_image(image_name: str):
+    """
+    Serve an image from the IMAGE_DIR by name.
+    """
+    image_path = f"/root/Desktop/Chatbot/table_variable/{image_name}"
+    # if not image_path.exists() or not image_path.is_file():
+    #     raise HTTPException(status_code=404, detail="Image not found")
+    if image_name.endswith(".svg"):
+        media_type = "image/svg+xml"
+    elif image_name.endswith(".png"):
+        media_type = "image/png"
+    elif image_name.endswith(".jpg") or image_name.endswith(".jpeg"):
+        media_type = "image/jpeg"
+    else:
+        return {"error": "Unsupported file format"}
 
-        # Read file and send as binary
-        with open(image_path, "rb") as f:
-            image_data = f.read()
-        
-        await websocket.send_bytes(image_data)
-        
-    except FileNotFoundError:
-        await websocket.send_json({"error": "Image not found"})
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
+    return FileResponse(image_path, media_type=media_type)
 
-@app.websocket("/chatagentws/upload_log_file")
-async def websocket_upload_log_file(websocket: WebSocket):
-    await manager.connect(websocket)
-    try:
-        while True:
-            # Get the initial message with ticket number
-            data = await websocket.receive_json()
-            ticket_number = data.get('ticket_number')
+
+@app.post("/chatagent/upload_log_file")
+async def upload_log_file(ticket_number: str , file: List[UploadFile]):
+   
+    # Specify the full path where files will be saved
+    full_path = "/root/Desktop/Chatbot/uploaded_log/"
+    
+    # Ensure the directory exists
+    os.makedirs(full_path, exist_ok=True)
+    file = file[0]
+    # Save the log file
+    file_location = f"{full_path}{file.filename}"
+    with open(file_location, "wb") as f:
+        f.write(await file.read())
+
+    sys_id = get_sys_id_from_incident_number(ticket_number)
+    upload_attachment(file_location,'incident',sys_id)
+
+    return {
+        "message": "Log file has been successfully uploaded and processed.",
+    }
+
+
+
+@app.get("/chatagent/upload_attachment/{ticket_number}")
+async def upload_attachment_details(ticket_number: str):
+   
+    return upload_attachment(ticket_number)
+
+
+# @app.websocket("/chatagentws/upload_log_file")
+# async def websocket_upload_log_file(websocket: WebSocket):
+#     await manager.connect(websocket)
+#     try:
+#         while True:
+#             # Get the initial message with ticket number
+#             data = await websocket.receive_json()
+#             ticket_number = data.get('ticket_number')
             
-            # Wait for the file data
-            file_data = await websocket.receive_bytes()
-            file_name = data.get('file_name', 'uploaded_file.log')
+#             # Wait for the file data
+#             file_data = await websocket.receive_bytes()
+#             file_name = data.get('file_name', 'uploaded_file.log')
             
-            # Specify the full path where files will be saved
-            full_path = "/root/Desktop/Chatbot/uploaded_log/"
+#             # Specify the full path where files will be saved
+#             full_path = "/root/Desktop/Chatbot/uploaded_log/"
             
-            # Ensure the directory exists
-            os.makedirs(full_path, exist_ok=True)
+#             # Ensure the directory exists
+#             os.makedirs(full_path, exist_ok=True)
             
-            # Save the log file
-            file_location = f"{full_path}{file_name}"
-            with open(file_location, "wb") as f:
-                f.write(file_data)
+#             # Save the log file
+#             file_location = f"{full_path}{file_name}"
+#             with open(file_location, "wb") as f:
+#                 f.write(file_data)
 
-            sys_id = get_sys_id_from_incident_number(ticket_number)
-            upload_attachment(file_location, 'incident', sys_id)
+#             sys_id = get_sys_id_from_incident_number(ticket_number)
+#             upload_attachment(file_location, 'incident', sys_id)
 
-            await websocket.send_json({
-                "message": "Log file has been successfully uploaded and processed."
-            })
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
+#             await websocket.send_json({
+#                 "message": "Log file has been successfully uploaded and processed."
+#             })
+#     except WebSocketDisconnect:
+#         manager.disconnect(websocket)
 
 
-@app.websocket("/chatagentws/upload_attachment/{ticket_number}")
-async def websocket_upload_attachment(websocket: WebSocket, ticket_number: str):
-    await manager.connect(websocket)
-    try:
-        result = upload_attachment(ticket_number)
-        await websocket.send_json(result)
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
+# @app.websocket("/chatagentws/upload_attachment/{ticket_number}")
+# async def websocket_upload_attachment(websocket: WebSocket, ticket_number: str):
+#     await manager.connect(websocket)
+#     try:
+#         result = upload_attachment(ticket_number)
+#         await websocket.send_json(result)
+#     except WebSocketDisconnect:
+#         manager.disconnect(websocket)
 
 ###################################################
 
@@ -1188,7 +1220,18 @@ def classify_query(input_text: str) -> str:
     try:
         # Create a prompt that asks the LLM to classify the query
         classification_prompt = f"""
-Functions:
+        You are a helpful assistant. Based on the user query, classify it into one of the following functions:
+        Instruction:
+        **Important Rules:**
+        - The query may be in English, French, or German.
+        - First detect the language, then translate to English before classifying.
+        - Respond with ONLY the exact function name like `check_internet` with no other text.
+        - Do NOT include translation, quotes, explanations, punctuation, or newlines.
+
+
+        Additionally, detect the **language** of the user query. The query can be in **English, French, or German**. If the query is in French or German, first translate it into English before classifying it.
+
+        Functions:
         1. check_internet: Function to detect the speed of the internet.
         2. install_extensions: Function for installing extensions.
         3. clone: Function for cloning a repository.
@@ -1206,47 +1249,146 @@ Functions:
 
         #### **English Examples**
         Question: What is the speed of the internet? / Is the internet available? / What is the speed of the internet?
-        Response: check_internet
+        Tool: check_internet
 
         Question: Install extension / install extension here / install these extensions / install the required extension
-        Response: install_extensions
+        Tool: install_extensions
 
         Question: How can I clone a Git repository? / I want to clone the repo / Clone repository / Clone repo
-        Response: clone
+        Tool: clone
 
         Question: What branches are available in the repository? / List the feature branch / Show me the feature branch 
-        Response: list_branches
+        Tool: list_branches
 
         Question: How do I switch to a different branch? / I want to checkout this repo to the main branch
-        Response: checkout_branch
+        Tool: checkout_branch
 
         Question: How do I open a file in the repository? / Need to edit the file / Need to work on hello.cbl / Open the MBANK70P.bms file
-        Response: open_file
+        Tool: open_file
 
         Question: How can I commit my changes? / I need to modify and commit the file
-        Response: commit_changes
+        Tool: commit_changes
 
         Question: Can you list the available logical partitions? / Run the USS command / Connect to SSH / The build is successful / USS command is clean?
-        Response: lpar_list
+        Tool: lpar_list
 
         Question: List my tickets / What are all the tickets assigned to me?
-        Response: get_incident_ticket
+        Tool: get_incident_ticket
 
         Question: I need to update the tickets / Update tickets / Ticket update
-        Response: update_incident
+        Tool: update_incident1
 
-        Question: Upload the log file / Upload this log file
-        Response: upload_attachment
+        Question: Upload the log file / Upload this log file / attach the log file
+        Tool: upload_attachment
 
         Question: I want to see all the dependent files / Show me the dependency files of MBANK70.bms / Open dependency file
-        Response: dependency_graph
+        Tool: dependency_graph
 
         Question: List me all the affected variable fields for BANK-SCR70-RATE / Show me the affected variables / List all affected variables
-        Response: variable_table
+        Tool: variable_table
+
+        #### **French Examples (Auto-translate & Classify)**
+        Question: Quelle est la vitesse de l'internet? / L'internet est-il disponible?  
+        (Translation: What is the speed of the internet?)  
+        Tool: check_internet
+
+        Question: Veuillez installer l'extension. / Installez ces extensions.  
+        (Translation: Please install the extension.)  
+        Tool: install_extensions
+
+        Question: Veuillez cloner le dépôt. / Je dois cloner le référentiel.  
+        (Translation: Please clone the repository.)  
+        Tool: clone
+
+        Question: Quelles sont les branches disponibles dans le référentiel? / Lister les branches.  
+        (Translation: What branches are available in the repository?)  
+        Tool: list_branches
+
+        Question: Ouvrir le fichier MBANK70P.bms. / Besoin de travailler sur MBANK70P.bms.  
+        (Translation: Open the MBANK70P.bms file.)  
+        Tool: open_file
+
+        Question: Comment puis-je valider mes modifications ? / Je dois modifier et valider le fichier.  
+        (Translation: How can I commit my changes? / I need to modify and commit the file.)  
+        Tool: commit_changes
+
+        Question: Pouvez-vous lister les partitions logiques disponibles ? / Exécuter la commande USS / Se connecter en SSH / La construction est réussie / La commande USS est propre ?  
+        (Translation: Can you list the available logical partitions? / Run the USS command / Connect to SSH / The build is successful / USS command is clean?)  
+        Tool: lpar_list
+
+        Question: Listez mes tickets. / Quels sont les tickets qui me sont attribués ?  
+        (Translation: List my tickets. / What are all the tickets assigned to me?)  
+        Tool: get_incident_ticket
+
+        Question: Je dois mettre à jour les tickets. / Mettre à jour les tickets. / Mise à jour du ticket.  
+        (Translation: I need to update the tickets. / Update tickets. / Ticket update.)  
+        Tool: update_incident
+
+        Question: Téléchargez le fichier journal. / Téléchargez ce fichier journal.  
+        (Translation: Upload the log file. / Upload this log file.)  
+        Tool: upload_attachment
+
+        Question: Je veux voir tous les fichiers dépendants. / Montrez-moi les fichiers dépendants de MBANK70.bms. / Ouvrir le fichier de dépendance.  
+        (Translation: I want to see all the dependent files. / Show me the dependency files of MBANK70.bms. / Open dependency file.)  
+        Tool: dependency_graph
+
+        Question: Listez tous les champs de variables affectés pour BANK-SCR70-RATE. / Montrez-moi les variables affectées. / Lister toutes les variables affectées.  
+        (Translation: List me all the affected variable fields for BANK-SCR70-RATE. / Show me the affected variables. / List all affected variables.)  
+        Tool: variable_table
+
+        #### **German Examples (Auto-translate & Classify)**  
+        Question: Wie schnell ist das Internet? / Ist das Internet verfügbar?  
+        (Translation: What is the speed of the internet?)  
+        Tool: check_internet  
+
+        Question: Bitte installieren Sie die Erweiterung. / Installieren Sie diese Erweiterungen.  
+        (Translation: Please install the extension.)  
+        Tool: install_extensions  
+
+        Question: Bitte klonen Sie das Repository. / Ich muss das Repository klonen.  
+        (Translation: Please clone the repository.)  
+        Tool: clone  
+
+        Question: Welche Zweige sind im Repository verfügbar? / Liste die Zweige auf.  
+        (Translation: What branches are available in the repository?)  
+        Tool: list_branches  
+
+        Question: Öffnen Sie die Datei MBANK70P.bms. / Ich muss mit MBANK70P.bms arbeiten.  
+        (Translation: Open the MBANK70P.bms file.)  
+        Tool: open_file  
+
+        Question: Wie kann ich meine Änderungen übernehmen? / Ich muss die Datei ändern und übernehmen.  
+        (Translation: How can I commit my changes? / I need to modify and commit the file.)  
+        Tool: commit_changes  
+
+        Question: Können Sie die verfügbaren logischen Partitionen auflisten? / Führen Sie den USS-Befehl aus / Verbinden Sie sich mit SSH / Der Build war erfolgreich / Der USS-Befehl ist sauber?  
+        (Translation: Can you list the available logical partitions? / Run the USS command / Connect to SSH / The build is successful / USS command is clean?)  
+        Tool: lpar_list  
+
+        Question: Listen Sie meine Tickets auf. / Welche Tickets sind mir zugewiesen?  
+        (Translation: List my tickets. / What are all the tickets assigned to me?)  
+        Tool: get_incident_ticket  
+
+        Question: Ich muss die Tickets aktualisieren. / Tickets aktualisieren. / Ticketaktualisierung.  
+        (Translation: I need to update the tickets. / Update tickets. / Ticket update.)  
+        Tool: update_incident  
+
+        Question: Laden Sie die Protokolldatei hoch. / Laden Sie diese Protokolldatei hoch.  
+        (Translation: Upload the log file. / Upload this log file.)  
+        Tool: upload_attachment  
+
+        Question: Ich möchte alle abhängigen Dateien sehen. / Zeigen Sie mir die Abhängigkeitsdateien von MBANK70.bms. / Öffnen Sie die Abhängigkeitsdatei.  
+        (Translation: I want to see all the dependent files. / Show me the dependency files of MBANK70.bms. / Open dependency file.)  
+        Tool: dependency_graph  
+
+        Question: Listen Sie alle betroffenen Variablenfelder für BANK-SCR70-RATE auf. / Zeigen Sie mir die betroffenen Variablen. / Listen Sie alle betroffenen Variablen auf.  
+        (Translation: List me all the affected variable fields for BANK-SCR70-RATE. / Show me the affected variables. / List all affected variables.)  
+        Tool: variable_table  
 
 
-        Make sure to use only one tool per query. Do not return explanations. Just invoke the appropriate tool.
-
+        **Unrelated Input:**
+            Question: "What's the weather today?"
+            Tool: unknown
         
         User Query: {input_text}
         """
@@ -1259,7 +1401,7 @@ Functions:
         tool_name = response.content.strip().lower()
         
         # Ensure we only return valid tool names
-        valid_tools = ["clone", "open_file", "commit_changes", "lpar_list", "dependency_graph", "variable_table"]
+        valid_tools = ["clone", "open_file", "commit_changes", "lpar_list", "dependency_graph", "variable_table","update_incident"]
         if tool_name in valid_tools:
             print(f"LLM classified query as: {tool_name}")
             return tool_name
@@ -1373,10 +1515,6 @@ async def repository_manager_ws(websocket: WebSocket, db=Depends(get_db)):
     except Exception as e:
         print(f"Unexpected error in repository WebSocket: {str(e)}")
         traceback.print_exc()
-
-
-
-
 
 
 
