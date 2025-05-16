@@ -23,6 +23,14 @@ from bokeh.models import ColumnDataSource, LabelSet
 import networkx as nx
 from http.server import SimpleHTTPRequestHandler
 from socketserver import TCPServer
+import networkx as nx
+import os
+import json
+import math
+from bokeh.plotting import figure, save, show
+from bokeh.models import MultiLine, HoverTool, LabelSet, ColumnDataSource
+from bokeh.io import output_file
+from bokeh.plotting.graph import from_networkx
 
 def get_object_id(file_path):
     """
@@ -425,6 +433,125 @@ def get_base_path(file_name):
     else:
         raise ValueError("Unsupported file type. Please provide a COBOL (.cbl, .cobol) or copybook (.cpy) file.")
 
+
+
+
+
+def visualize_dependencies12(object_name, dependencies):
+    """
+    Visualize dependencies as a graph using Bokeh and serve the HTML file over HTTP.
+    Uses Kamada-Kawai algorithm for better node positioning with minimal overlap.
+    """
+    # Create a directed graph
+    graph = nx.DiGraph()
+    graph.add_node(object_name)  # Add the main object as a node
+
+    # Add edges from the main object to its dependencies
+    for dep in dependencies:
+        graph.add_edge(object_name, dep['name'])
+
+    # Create a Bokeh plot with more space
+    plot = figure(title="Dependency Graph", 
+                  width=1000, height=1000,  # Larger plot size
+                  x_range=(-6, 6), y_range=(-6, 6),  # Wider ranges
+                  tools="pan,wheel_zoom,reset,save", 
+                  active_scroll="wheel_zoom")
+    plot.title.text_font_size = "16pt"
+    plot.title.align = "center"
+    plot.background_fill_color = "lightgrey"
+
+    # Get the number of dependencies
+    num_dependencies = len(dependencies)
+    
+    # Create a custom circular layout
+    pos = {}
+    
+    # Place the main object in the center
+    pos[object_name] = (0, 0)
+    
+    # Place dependencies in a circle around the main object
+    radius = 4  # Adjust radius based on number of nodes
+    
+    # Calculate positions for the dependencies in a circular layout
+    for i, dep in enumerate(dependencies):
+        angle = 2 * math.pi * i / num_dependencies
+        x = radius * math.cos(angle)
+        y = radius * math.sin(angle)
+        pos[dep['name']] = (x, y)
+    
+    # Convert the NetworkX graph to a Bokeh graph
+    bokeh_graph = from_networkx(graph, pos)
+    bokeh_graph.node_renderer.data_source.data["node_label"] = list(graph.nodes)
+
+    # Customize node colors and sizes
+    node_colors = ["#87ceeb" if node == object_name else "#ffcccb" for node in graph.nodes]
+    node_sizes = [100 if node == object_name else 80 for node in graph.nodes]
+
+    bokeh_graph.node_renderer.data_source.data["fill_color"] = node_colors
+    bokeh_graph.node_renderer.data_source.data["size"] = node_sizes
+
+    bokeh_graph.node_renderer.glyph.fill_color = "fill_color"
+    bokeh_graph.node_renderer.glyph.line_color = "black"
+    bokeh_graph.node_renderer.glyph.line_width = 2
+    bokeh_graph.node_renderer.glyph.size = "size"
+
+    # Customize edge appearance
+    bokeh_graph.edge_renderer.glyph = MultiLine(line_color="#a3a3a3", line_alpha=0.8, line_width=2)
+
+    # Add hover tool
+    hover_tool = HoverTool(tooltips=[("Node", "@node_label")])
+    plot.add_tools(hover_tool)
+
+    # Add the graph to the plot
+    plot.renderers.append(bokeh_graph)
+
+    # Add text labels to the nodes with slight offset from nodes for better readability
+    x_coords = []
+    y_coords = []
+    labels = []
+    
+    # Calculate label positions with a slight offset
+    for node in graph.nodes:
+        x, y = pos[node]
+        # For dependency nodes, slightly increase the offset in the direction from center
+        if node != object_name:
+            # Normalize direction vector
+            dist = math.sqrt(x*x + y*y)
+            if dist > 0:
+                # Add a slight offset in the same direction
+                offset_factor = 1.15  # 15% further out than the node
+                x = x * offset_factor
+                y = y * offset_factor
+        
+        x_coords.append(x)
+        y_coords.append(y)
+        labels.append(node)
+
+    labels_source = ColumnDataSource(data=dict(
+        x=x_coords,
+        y=y_coords,
+        labels=labels
+    ))
+
+    label_set = LabelSet(x='x', y='y', text='labels', source=labels_source,
+                          text_font_size="10pt", text_color="#333333",
+                          text_align="center", text_baseline="middle")
+    plot.add_layout(label_set)
+
+    # Hide axes and outline
+    plot.xaxis.visible = False
+    plot.yaxis.visible = False
+    plot.outline_line_color = None
+    plot.grid.visible = False
+
+    # Save the plot to an HTML file
+    output_file = "/root/Desktop/Chatbot/html_paths/dependency_graph.html"
+    save(plot, filename=output_file)
+
+    return output_file
+
+
+
 def main(file_name):
     # Ask the user for the COBOL file name
     #file_name = input("Please enter the COBOL file name: ")
@@ -457,7 +584,7 @@ def main(file_name):
         #print("dependencies............",dependencies)
         if dependencies:
             dependencies_list = display_dependencies(dependencies, base_path)
-            html_path = visualize_dependencies(object_name, dependencies)
+            html_path = visualize_dependencies12(object_name, dependencies)
             return dependencies_list,html_path
        
             #print('\ndepen:     ',dependencies_list)
