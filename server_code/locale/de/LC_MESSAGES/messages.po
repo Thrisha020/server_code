@@ -1,0 +1,59 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Language: de\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# Static messages
+msgid " BMS file not found."
+msgstr " BMS-Datei nicht gefunden."
+
+msgid " No dependencies found."
+msgstr " Keine Abhängigkeiten gefunden."
+
+msgid " No graphs were generated."
+msgstr " Es wurden keine Graphen erstellt."
+
+# Dynamic template strings
+msgid "\n ID: {parent_id}"
+msgstr "\n ID: {parent_id}"
+
+msgid " Parent Name: {parent_name}"
+msgstr " Name der übergeordneten Datei: {parent_name}"
+
+msgid "**Responsible Node: {map_name}**"
+msgstr "**Verantwortlicher Knoten: {map_name}**"
+
+msgid "📌 Group Relation: {group_name}"
+msgstr "📌 Gruppenbeziehung: {group_name}"
+
+msgid "  -  Child Name: {file_name_unique}"
+msgstr "  -  Kindname: {file_name_unique}"
+
+msgid "* Child Name: {file_name_unique}"
+msgstr "* Kindname: {file_name_unique}"
+
+msgid "\n Generated Graph Files:"
+msgstr "\n Generierte Graph-Dateien:"
+
+msgid "{file} → Open in browser: {file_url}"
+msgstr "{file} → Im Browser öffnen: {file_url}"
+
+msgid "Name: {parent_name}"
+msgstr "Name: {parent_name}"
+
+msgid "Group Relation: {group_name}"
+msgstr "Gruppenbeziehung: {group_name}"
+
+
+msgid "No repositories contain the file you requested."
+msgstr "Keine Repositorys enthalten die angeforderte Datei."
+
+
+msgid "The following repository(s) contain the file you requested."
+msgstr "Die folgende(n) Repository(s) enthalten die angeforderte Datei."
+
+
+msgid "An error occurred while processing the dependency graph:{str(e)}"
+msgstr "Ein Fehler ist beim Verarbeiten des Abhängigkeitsgraphen aufgetreten: {str(e)}"

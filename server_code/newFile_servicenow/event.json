@@ -1,0 +1,14 @@
+{
+    "records": [
+        {
+            "source": "external_system",
+            "event_class": "alert",
+            "node": "server1",
+            "type": "warning",
+            "resource": "CPU",
+            "metric_name": "cpu_utilization",
+            "severity": "3",
+            "description": "CPU usage is high 2"
+        }
+    ]
+}

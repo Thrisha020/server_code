@@ -1,0 +1,10 @@
+required_extensions:
+  - IBM.zopeneditor
+  - ms-vscode-remote.remote-ssh
+  - Zowe.vscode-extension-for-zowe
+  - zowe.zowe-explorer-ftp-extension
+  - redhat.vscode-yaml
+windows_instruction_path: "/Users/thrisham/Desktop/cobol_code/Flowdiagram_1/setup_vscode_windows.pdf"
+mac_instruction_path: "/Users/thrisham/Desktop/cobol_code/Flowdiagram_1/setup_vscode_mac.pdf"
+windows_vscode_download_link: "https://code.visualstudio.com/Download"
+mac_vscode_download_link: "https://code.visualstudio.com/Download"

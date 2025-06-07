@@ -1,0 +1,4 @@
+repositories:
+  #git_url: 'git@github.com:gmsadmin-git/MortgageApplication.git'
+  git_url: 'git@github.com:gmsadmin-git/banking_demo.git'
+

@@ -1,0 +1,72 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Language: fr\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+
+# Debug and basic strings
+msgid "Test"
+msgstr "Tester"
+
+msgid "BMS file not found."
+msgstr "Fichier BMS introuvable."
+
+msgid "No dependencies found."
+msgstr "Aucune dépendance trouvée."
+
+# Main content
+msgid "ID: {parent_id}"
+msgstr "ID : {parent_id}"
+
+msgid "Parent Name: {parent_name}"
+msgstr "Nom parent : {parent_name}"
+
+msgid "Name: {parent_name}"
+msgstr "Nom : {parent_name}"
+
+msgid "**Responsible Node: {map_name}**"
+msgstr "**Nœud responsable : {map_name}**"
+
+# Group relations
+msgid "📌 Group Relation: {group_name}"
+msgstr "📌 Relation de groupe : {group_name}"
+
+msgid "Group Relation: {group_name}"
+msgstr "Relation de groupe : {group_name}"
+
+# Child names
+msgid "  -  Child Name: {file_name_unique}"
+msgstr "  -  Nom enfant : {file_name_unique}"
+
+msgid "* Child Name: {file_name_unique}"
+msgstr "* Nom enfant : {file_name_unique}"
+
+# File generation
+msgid "Generated Graph Files:"
+msgstr "Fichiers graphiques générés :"
+
+msgid "No graphs were generated."
+msgstr "Aucun graphique n'a été généré."
+
+msgid "{file} → Open in browser: {file_url}"
+msgstr "{file} → Ouvrir dans le navigateur : {file_url}"
+
+# HTML files
+msgid "MBANK70.BANK70A.htm : {html_link_1}"
+msgstr "MBANK70.BANK70A.htm : {html_link_1}"
+
+msgid "MBANK70.HELP70A.htm : {html_link_2}"
+msgstr "MBANK70.HELP70A.htm : {html_link_2}"
+
+msgid "No repositories contain the file you requested."
+msgstr "Aucun dépôt ne contient le fichier demandé."
+
+
+msgid "The following repository(s) contain the file you requested."
+msgstr "Le(s) dépôt(s) suivant(s) contien(nent) le fichier demandé.."
+
+
+msgid "An error occurred while processing the dependency graph:{str(e)}"
+msgstr "Une erreur s'est produite lors du traitement du graphe de dépendance : {str(e)}"

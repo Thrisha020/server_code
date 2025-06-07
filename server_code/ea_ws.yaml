@@ -1,0 +1,7 @@
+BankingDemoWS:
+  cobol_base_path : "C:/Users/Administrator.GRT-EA-WDC2/Downloads/Rocket EA/Banking_Demo_Sources/cobol"
+  copybook_base_path : "C:/Users/Administrator.GRT-EA-WDC2/Downloads/Rocket EA/Banking_Demo_Sources/copybook"
+
+MortgageAppWS:
+  cobol_base_path : "C:/Users/Administrator.GRT-EA-WDC2/Downloads/Rocket EA/MortgageApplication-main/cobol"
+  copybook_base_path : "C:/Users/Administrator.GRT-EA-WDC2/Downloads/Rocket EA/MortgageApplication-main/copybook"

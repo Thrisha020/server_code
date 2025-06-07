@@ -1,0 +1,10 @@
+Git push commands:
+-----------------
+
+git branch
+git branch feature
+git checkout feature
+git branch (check the branch is switched)
+git add .
+git commit -m "backup"
+git push origin feature
